@@ -5,21 +5,29 @@ import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { useAudio } from "@/context/AudioContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { useLocalSearchParams, router } from "expo-router";
 
 export default function AppMain() {
   const { setPlaybackInstance } = useAudio();
-  const { token } = useLocalSearchParams<{ token?: string }>();
+  const [tokens, setTokens] = useState<{
+    idToken: string;
+    accessToken: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (token) {
-      console.log("Received token from login page:", token);
-      // Optionally, you can set up API headers or perform token validation here.
-    } else {
-      console.warn("No token received from login page.");
-    }
-  }, [token]);
+    AsyncStorage.getItem("userTokens")
+      .then((str) => {
+        if (str) setTokens(JSON.parse(str));
+        else console.warn("No tokens in storage");
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (tokens) console.log("Tokens:", tokens);
+  }, [tokens]);
 
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);

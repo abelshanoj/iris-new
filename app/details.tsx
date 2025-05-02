@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
@@ -17,13 +18,10 @@ const DetailsScreen: React.FC = () => {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [grade, setGrade] = useState("");
   const [syllabus, setSyllabus] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const handleDateChange = (_: any, selectedDate?: Date) => {
-    setDateOfBirth(selectedDate || dateOfBirth);
-  };
 
   const handleContinue = async () => {
     if (!fullName || !dateOfBirth || !grade || !syllabus) {
@@ -33,11 +31,9 @@ const DetailsScreen: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await fetch("https://your-backend.com/api/details", {
+      const res = await fetch("http:localhost:8000/details", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName,
           dateOfBirth: dateOfBirth.toISOString(),
@@ -46,14 +42,19 @@ const DetailsScreen: React.FC = () => {
         }),
       });
 
-      if (res.ok) {
-        router.replace("/main");
-      } else {
+      // console.log(res);
+      if (!res.ok) {
+        // reads error text from server, shows alert, and stops
         const text = await res.text();
         Alert.alert("Error", `Server responded: ${res.status} ${text}`);
+        return;
       }
+
+      // only here, on success, do we navigate
+      router.replace("/main");
     } catch (err: any) {
       Alert.alert("Network error", err.message);
+      return;
     } finally {
       setLoading(false);
     }
@@ -62,7 +63,7 @@ const DetailsScreen: React.FC = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.select({ ios: "padding", android: undefined })}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <Text style={styles.heading}>
         Hi, I’m Iris! Tell me a bit about yourself
@@ -72,23 +73,29 @@ const DetailsScreen: React.FC = () => {
       <TextInput
         style={styles.input}
         placeholder="Enter full name"
-        placeholderTextColor="gray"
+        placeholderTextColor="#aaa"
         value={fullName}
         onChangeText={setFullName}
       />
 
       <Text style={styles.label}>Date of Birth</Text>
-      <Button
-        title={dateOfBirth ? dateOfBirth.toDateString() : "Select Date"}
-        onPress={() => setDateOfBirth(new Date())}
-        color="#444"
-      />
-      {dateOfBirth && (
+      <TouchableOpacity
+        style={styles.dateButton}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Text style={styles.dateButtonText}>
+          {dateOfBirth ? dateOfBirth.toDateString() : "Select Date"}
+        </Text>
+      </TouchableOpacity>
+      {showDatePicker && (
         <DateTimePicker
-          value={dateOfBirth}
+          value={dateOfBirth || new Date()}
           mode="date"
           display="default"
-          onChange={handleDateChange}
+          onChange={(_, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) setDateOfBirth(selectedDate);
+          }}
         />
       )}
 
@@ -96,7 +103,7 @@ const DetailsScreen: React.FC = () => {
       <TextInput
         style={styles.input}
         placeholder="e.g. 1st Grade"
-        placeholderTextColor="gray"
+        placeholderTextColor="#aaa"
         value={grade}
         onChangeText={setGrade}
       />
@@ -105,18 +112,27 @@ const DetailsScreen: React.FC = () => {
       <TextInput
         style={styles.input}
         placeholder="e.g. Syllabus A"
-        placeholderTextColor="gray"
+        placeholderTextColor="#aaa"
         value={syllabus}
         onChangeText={setSyllabus}
       />
 
-      {loading ? (
-        <ActivityIndicator size="large" />
-      ) : (
-        <View style={styles.buttonContainer}>
-          <Button title="Continue" onPress={handleContinue} />
-        </View>
-      )}
+      <View style={styles.buttonWrapper}>
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            loading && styles.continueButtonDisabled,
+          ]}
+          onPress={handleContinue}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.continueText}>Continue</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -124,32 +140,57 @@ const DetailsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "black",
+    backgroundColor: "#000",
     padding: 20,
     justifyContent: "center",
   },
   heading: {
-    color: "white",
+    color: "#fff",
     fontSize: 24,
     fontWeight: "600",
     marginBottom: 30,
     textAlign: "center",
   },
   label: {
-    color: "white",
+    color: "#fff",
     fontSize: 16,
     marginBottom: 8,
   },
   input: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    color: "white",
-    paddingHorizontal: 10,
+    height: 48,
+    backgroundColor: "#222",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    color: "#fff",
     marginBottom: 20,
   },
-  buttonContainer: {
-    marginTop: 20,
+  dateButton: {
+    backgroundColor: "#222",
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  dateButtonText: {
+    color: "#fff",
+    textAlign: "center",
+  },
+  buttonWrapper: {
+    marginTop: 10,
+    alignItems: "center",
+  },
+  continueButton: {
+    backgroundColor: "#ff724c",
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+  },
+  continueButtonDisabled: {
+    backgroundColor: "#888",
+  },
+  continueText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

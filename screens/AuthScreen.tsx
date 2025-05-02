@@ -38,8 +38,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onSignIn }) => {
         showPlayServicesUpdateDialog: true,
       });
       const userInfo = await GoogleSignin.signIn();
-
-      const { idToken } = await GoogleSignin.getTokens();
+      const { idToken, accessToken } = await GoogleSignin.getTokens();
       if (idToken) {
         await AsyncStorage.setItem("userToken", idToken);
         setIsLoggedIn(true);
