@@ -10,16 +10,16 @@ import { useLocalSearchParams, router } from "expo-router";
 
 export default function AppMain() {
   const { setPlaybackInstance } = useAudio();
-  // const { token } = useLocalSearchParams<{ token?: string }>();
+  const { token } = useLocalSearchParams<{ token?: string }>();
 
-  // useEffect(() => {
-  //   if (token) {
-  //     console.log("Received token from login page:", token);
-  //     // Optionally, you can set up API headers or perform token validation here.
-  //   } else {
-  //     console.warn("No token received from login page.");
-  //   }
-  // }, [token]);
+  useEffect(() => {
+    if (token) {
+      console.log("Received token from login page:", token);
+      // Optionally, you can set up API headers or perform token validation here.
+    } else {
+      console.warn("No token received from login page.");
+    }
+  }, [token]);
 
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);

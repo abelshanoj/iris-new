@@ -9,6 +9,16 @@ const LoginScreen: React.FC = () => {
   const [token, setToken] = useState<string | null>(null);
   const router = useRouter();
 
+  useEffect(() => {
+    const clearTokenAndCheck = async () => {
+      // Remove the token on app start
+      await AsyncStorage.removeItem("userToken");
+      // Then, continue with your logic (token will be null)
+      setLoading(false);
+    };
+    clearTokenAndCheck();
+  }, []);
+
   // Check if a token is already stored
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -33,7 +43,7 @@ const LoginScreen: React.FC = () => {
     const storedToken = await AsyncStorage.getItem("userToken");
     if (storedToken) {
       setToken(storedToken);
-      console.log(storedToken);
+      //console.log(storedToken);
       router.replace(`/main?token=${storedToken}`);
     }
   };

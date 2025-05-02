@@ -32,6 +32,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onSignIn }) => {
   const onGoogleButtonPress = async () => {
     setLoading(true);
     try {
+      await GoogleSignin.signOut();
+
       await GoogleSignin.hasPlayServices({
         showPlayServicesUpdateDialog: true,
       });
