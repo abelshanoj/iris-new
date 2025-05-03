@@ -25,10 +25,6 @@ export default function AppMain() {
       .catch(console.error);
   }, []);
 
-  useEffect(() => {
-    if (tokens) console.log("Tokens:", tokens);
-  }, [tokens]);
-
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [audioUri, setAudioUri] = useState<string>("");

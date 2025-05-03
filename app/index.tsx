@@ -17,6 +17,17 @@ import CLIENT_IDS from "../keys";
 
 GoogleSignin.configure({
   webClientId: CLIENT_IDS.web,
+  scopes: [
+    "https://www.googleapis.com/auth/classroom.courses.readonly",
+    "https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly",
+    "https://www.googleapis.com/auth/classroom.coursework.me.readonly",
+    "https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly",
+    "https://www.googleapis.com/auth/classroom.student-submissions.me.readonly",
+    "https://www.googleapis.com/auth/classroom.announcements.readonly",
+    "https://www.googleapis.com/auth/drive.readonly",
+  ], // what API you want to access on behalf of the user, default is email and profile
+  offlineAccess: true,
+  forceCodeForRefreshToken: true,
 });
 
 const LoginScreen: React.FC = () => {
@@ -24,71 +35,52 @@ const LoginScreen: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
-  // useEffect(() => {
-  //   const init = async () => {
-  //     await AsyncStorage.removeItem("idToken"); // optional: clear token
-  //     await checkLoginStatus();
-  //   };
-  //   init();
-  // }, []);
-
-  // const checkLoginStatus = async () => {
-  //   try {
-  //     const token = await AsyncStorage.getItem("idToken");
-  //     if (token) {
-  //       setIsLoggedIn(true);
-  //       router.replace(`/main?token=${token}`);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error checking login status:", error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const onGoogleButtonPress = async () => {
-    // setLoading(true);
     try {
       await GoogleSignin.signOut(); // optional: to ensure fresh login
       await GoogleSignin.hasPlayServices({
         showPlayServicesUpdateDialog: true,
       });
+
       const userInfo = await GoogleSignin.signIn();
       const tokens = await GoogleSignin.getTokens();
       await AsyncStorage.setItem("userTokens", JSON.stringify(tokens));
-      setIsLoggedIn(true);
-      router.replace("/details");
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error:", error.message);
-        if ("code" in error) {
-          const errorCode = (error as any).code;
 
-          if (errorCode === statusCodes.SIGN_IN_CANCELLED) {
-            console.log("User cancelled the login flow");
-          } else if (errorCode === statusCodes.IN_PROGRESS) {
-            console.log("Signing in");
-          } else if (errorCode === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-            console.log("Play services not available or outdated");
-          } else {
-            console.error("Unhandled error code:", errorCode);
-          }
-        }
-      } else {
-        console.error("Unknown error:", error);
+      const serverAuthCode = userInfo.data?.serverAuthCode;
+
+      if (!serverAuthCode) {
+        alert("Failed to retrieve serverAuthCode.");
+        return;
       }
+
+      const response = await fetch("http://localhost:8000/oauth", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ serverAuthCode }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send auth code to backend");
+      }
+
+      const result = await response.json();
+      console.log("Backend response:", result);
+
+      if (result.userPresent) {
+        setIsLoggedIn(true);
+        router.replace("/main");
+      } else {
+        router.replace("/details");
+      }
+    } catch (error: unknown) {
+      console.error("Error during sign-in process:", error);
+      alert("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
-  // if (loading) {
-  //   return (
-  //     <View style={styles.loadingContainer}>
-  //       <ActivityIndicator size="large" color="#ff724c" />
-  //     </View>
-  //   );
-  // }
 
   return (
     <View style={styles.container}>
